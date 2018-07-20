@@ -3,11 +3,11 @@ package jp.skypencil.dependj;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
-
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.FieldVisitor;
@@ -56,13 +56,6 @@ class DependencyAnalysisVisitor extends ClassVisitor {
         dependency.put(packageName, findPackage(interfaceName));
       }
     }
-    //    if (signature != null) {
-    //      Type type = Type.getObjectType(signature);
-    //      String signaturePackage = findPackage(type);
-    //      if (signaturePackage != null) {
-    //        dependency.put(packageName, signaturePackage);
-    //      }
-    //    }
   }
 
   @Override
@@ -181,7 +174,24 @@ class DependencyAnalysisVisitor extends ClassVisitor {
   Map<String, AtomicInteger> getInterfaceCount() {
     return Collections.unmodifiableMap(interfaceCount);
   }
+
   Multimap<String, String> getDependency() {
-	  return Multimaps.unmodifiableMultimap(dependency);
+    return Multimaps.unmodifiableMultimap(dependency);
+  }
+
+  AnalysisResult getAnalysisResult() {
+    return ImmutableAnalysisResult.builder()
+        .abstractClassCount(convert(abstractClassCount))
+        .classCount(convert(classCount))
+        .interfaceCount(convert(interfaceCount))
+        .dependencies(dependency)
+        .build();
+  }
+
+  private Map<String, Integer> convert(Map<String, AtomicInteger> source) {
+    return source
+        .entrySet()
+        .stream()
+        .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().intValue()));
   }
 }
