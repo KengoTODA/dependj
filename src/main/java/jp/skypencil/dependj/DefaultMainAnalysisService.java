@@ -36,12 +36,14 @@ class DefaultMainAnalysisService implements MainAnalysisService {
   public Mono<AnalysisResult> analyse(Collection<File> directories) {
     Flux<AnalysisResult> jarFiles =
         Flux.fromIterable(directories)
+            .publishOn(Schedulers.parallel())
             .flatMap(this::searchJarFiles)
             .doOnNext(file -> System.err.printf("analysing jar file: %s%n", file))
             .flatMap(open())
             .flatMap(jarAnalysis::analyse);
     Mono<AnalysisResult> classFiles =
         Flux.fromIterable(directories)
+            .publishOn(Schedulers.parallel())
             .flatMap(this::searchClassFiles)
             .doOnNext(file -> System.err.printf("analysing class file: %s%n", file))
             .reduce(
@@ -52,9 +54,7 @@ class DefaultMainAnalysisService implements MainAnalysisService {
                 })
             .map(list -> list.toArray(new File[0]))
             .flatMap(classAnalysis::analyse);
-    return Flux.merge(jarFiles, classFiles)
-        .reduce(AnalysisResult::merge)
-        .subscribeOn(Schedulers.parallel());
+    return Flux.merge(jarFiles, classFiles).reduce(AnalysisResult::merge);
   }
 
   @NonNull

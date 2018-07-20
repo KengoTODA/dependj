@@ -12,6 +12,7 @@ import org.objectweb.asm.Opcodes;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 @Service
 class DefaultJarAnalysisService implements JarAnalysisService {
@@ -20,6 +21,7 @@ class DefaultJarAnalysisService implements JarAnalysisService {
     Preconditions.checkNotNull(file);
     DependencyAnalysisVisitor visitor = new DependencyAnalysisVisitor(Opcodes.ASM6);
     return Flux.fromStream(file.stream())
+        .publishOn(Schedulers.parallel())
         .filter(entry -> entry.getName().endsWith(".class"))
         .flatMap(open(file))
         .flatMap(read())
