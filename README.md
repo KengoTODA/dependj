@@ -1,7 +1,7 @@
 DependJ
 =======
 
-DependJ is a clone of [JDepend](https://github.com/clarkware/jdepend).
+DependJ is a clone of [JDepend](https://github.com/clarkware/jdepend) and [jdeps](https://docs.oracle.com/javase/8/docs/technotes/tools/unix/jdeps.html).
 It supports Java8+, runs in multi-thread.
 
 
