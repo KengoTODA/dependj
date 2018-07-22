@@ -11,7 +11,7 @@ import org.immutables.value.Value;
 import org.springframework.lang.NonNull;
 
 @Value.Immutable
-interface AnalysisResult {
+public interface AnalysisResult {
   @NonNull
   Map<String, Integer> classCount();
 
