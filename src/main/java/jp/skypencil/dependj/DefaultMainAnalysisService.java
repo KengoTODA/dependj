@@ -13,6 +13,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
 import java.util.jar.JarFile;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
@@ -22,6 +24,7 @@ import reactor.core.scheduler.Schedulers;
 
 @Service
 class DefaultMainAnalysisService implements MainAnalysisService {
+  private final Logger logger = LoggerFactory.getLogger(getClass());
   private ClassAnalysisService classAnalysis;
   private JarAnalysisService jarAnalysis;
 
@@ -38,14 +41,14 @@ class DefaultMainAnalysisService implements MainAnalysisService {
         Flux.fromIterable(directories)
             .publishOn(Schedulers.parallel())
             .flatMap(this::searchJarFiles)
-            .doOnNext(file -> System.err.printf("analysing jar file: %s%n", file))
+            .doOnNext(file -> logger.trace("analysing jar file: {}", file))
             .flatMap(open())
             .flatMap(jarAnalysis::analyse);
     Mono<AnalysisResult> classFiles =
         Flux.fromIterable(directories)
             .publishOn(Schedulers.parallel())
             .flatMap(this::searchClassFiles)
-            .doOnNext(file -> System.err.printf("analysing class file: %s%n", file))
+            .doOnNext(file -> logger.trace("analysing class file: {}", file))
             .reduce(
                 new ArrayList<File>(),
                 (list, file) -> {

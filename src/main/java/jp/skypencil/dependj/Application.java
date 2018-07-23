@@ -15,6 +15,8 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import jp.skypencil.dependj.formatter.DotFormatter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -29,11 +31,15 @@ public class Application implements ApplicationRunner {
 
   @Autowired private MainAnalysisService analysisService;
   @Autowired private DotFormatter dotFormatter;
+  private Logger logger = LoggerFactory.getLogger(getClass());
 
   @Override
   public void run(ApplicationArguments args) throws Exception {
     Collection<File> directories = toDirectory(args.getNonOptionArgs());
+    long start = System.currentTimeMillis();
     AnalysisResult result = analysisService.analyse(directories).block();
+    long elapsed = System.currentTimeMillis() - start;
+    logger.debug("elapsed {} ms", elapsed);
     output(args, System.out).accept(result);
   }
 
@@ -67,8 +73,8 @@ public class Application implements ApplicationRunner {
     } else {
       stream = new UnclosableOutputStream(stdout);
       for (int i = 1; i < options.size(); ++i) {
-        System.err.printf(
-            "dot option got multiple values but only first one is used, so this value is ignored: %s%n",
+        logger.warn(
+            "dot option got multiple values but only first one is used, so this value is ignored: {}",
             options.get(i));
       }
     }
