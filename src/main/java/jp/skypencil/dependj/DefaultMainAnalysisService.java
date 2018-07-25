@@ -11,8 +11,6 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.function.Function;
-import java.util.jar.JarFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,7 +40,7 @@ class DefaultMainAnalysisService implements MainAnalysisService {
             .publishOn(Schedulers.parallel())
             .flatMap(this::searchJarFiles)
             .doOnNext(file -> logger.trace("analysing jar file: {}", file))
-            .flatMap(open())
+            .map(File::toPath)
             .flatMap(jarAnalysis::analyse);
     Mono<AnalysisResult> classFiles =
         Flux.fromIterable(directories)
@@ -112,16 +110,5 @@ class DefaultMainAnalysisService implements MainAnalysisService {
       return Flux.error(e);
     }
     return Flux.fromIterable(jarFiles);
-  }
-
-  @NonNull
-  private Function<File, Mono<JarFile>> open() {
-    return file -> {
-      try {
-        return Mono.just(new JarFile(file));
-      } catch (IOException e) {
-        return Mono.error(e);
-      }
-    };
   }
 }
