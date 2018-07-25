@@ -3,15 +3,12 @@ package jp.skypencil.dependj;
 import com.google.common.base.Preconditions;
 import java.io.File;
 import java.nio.ByteBuffer;
-import java.nio.channels.AsynchronousFileChannel;
-import java.nio.file.StandardOpenOption;
-import java.util.function.Function;
+import jp.skypencil.dependj.io.PathToData;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.Opcodes;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.buffer.DataBuffer;
-import org.springframework.core.io.buffer.DataBufferFactory;
-import org.springframework.core.io.buffer.DataBufferUtils;
-import org.springframework.core.io.buffer.DefaultDataBufferFactory;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -19,7 +16,12 @@ import reactor.core.scheduler.Schedulers;
 
 @Service
 class DefaultClassAnalysisService implements ClassAnalysisService {
-  private final DataBufferFactory dataBufferFactory = new DefaultDataBufferFactory();
+  @NonNull private final PathToData pathToData;
+
+  @Autowired
+  DefaultClassAnalysisService(@NonNull PathToData pathToData) {
+    this.pathToData = Preconditions.checkNotNull(pathToData);
+  }
 
   @Override
   public Mono<AnalysisResult> analyse(File... files) {
@@ -29,7 +31,8 @@ class DefaultClassAnalysisService implements ClassAnalysisService {
         .publishOn(Schedulers.parallel())
         .filter(File::isFile)
         .filter(file -> file.getName().endsWith(".class"))
-        .flatMap(open())
+        .map(File::toPath)
+        .flatMap(pathToData::read)
         .map(DataBuffer::asByteBuffer)
         .map(ByteBuffer::array)
         .map(ClassReader::new)
@@ -40,16 +43,5 @@ class DefaultClassAnalysisService implements ClassAnalysisService {
             })
         .reduce((a, b) -> a)
         .map(a -> visitor.getAnalysisResult());
-  }
-
-  private Function<File, Mono<DataBuffer>> open() {
-    return file -> {
-      Flux<DataBuffer> channel =
-          DataBufferUtils.readAsynchronousFileChannel(
-              () -> AsynchronousFileChannel.open(file.toPath(), StandardOpenOption.READ),
-              dataBufferFactory,
-              4 * 1024);
-      return DataBufferUtils.join(channel);
-    };
   }
 }

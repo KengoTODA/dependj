@@ -3,24 +3,20 @@ package jp.skypencil.dependj;
 import com.google.common.base.Preconditions;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.AsynchronousFileChannel;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
-import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.function.Function;
+import jp.skypencil.dependj.io.PathToData;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.Opcodes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.buffer.DataBuffer;
-import org.springframework.core.io.buffer.DataBufferFactory;
-import org.springframework.core.io.buffer.DataBufferUtils;
-import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -30,7 +26,13 @@ import reactor.core.scheduler.Schedulers;
 @Service
 class DefaultJarAnalysisService implements JarAnalysisService {
   private final Logger logger = LoggerFactory.getLogger(getClass());
-  private final DataBufferFactory dataBufferFactory = new DefaultDataBufferFactory();
+
+  @NonNull private final PathToData pathToData;
+
+  @Autowired
+  DefaultJarAnalysisService(@NonNull PathToData pathToData) {
+    this.pathToData = Preconditions.checkNotNull(pathToData);
+  }
 
   @Override
   public Mono<AnalysisResult> analyse(Path jar) {
@@ -48,7 +50,7 @@ class DefaultJarAnalysisService implements JarAnalysisService {
     return Flux.fromIterable(fs.getRootDirectories())
         .publishOn(Schedulers.parallel())
         .flatMap(this::walk)
-        .flatMap(open())
+        .flatMap(pathToData::read)
         .map(DataBuffer::asByteBuffer)
         .map(ByteBuffer::array)
         .map(ClassReader::new)
@@ -98,16 +100,5 @@ class DefaultJarAnalysisService implements JarAnalysisService {
           }
           emitter.complete();
         });
-  }
-
-  private Function<Path, Mono<DataBuffer>> open() {
-    return path -> {
-      Flux<DataBuffer> channel =
-          DataBufferUtils.readAsynchronousFileChannel(
-              () -> AsynchronousFileChannel.open(path, StandardOpenOption.READ),
-              dataBufferFactory,
-              4 * 1024);
-      return DataBufferUtils.join(channel);
-    };
   }
 }
