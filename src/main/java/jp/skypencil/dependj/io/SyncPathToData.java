@@ -6,8 +6,10 @@ import java.nio.file.Path;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferFactory;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
+import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
+@Component
 class SyncPathToData implements PathToData {
   private DataBufferFactory factory = new DefaultDataBufferFactory();
 

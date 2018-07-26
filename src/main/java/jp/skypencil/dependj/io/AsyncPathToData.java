@@ -7,17 +7,17 @@ import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferFactory;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
-import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-@Component
 class AsyncPathToData implements PathToData {
   private static final int BUFFER_SIZE = 8 * 1024;
   private DataBufferFactory factory = new DefaultDataBufferFactory();
 
   @Override
   public Mono<DataBuffer> read(Path path) {
+    // not supported even by JDK10
+    // https://github.com/dmlloyd/openjdk/blob/ba116d5/src/jdk.zipfs/share/classes/jdk/nio/zipfs/ZipFileSystemProvider.java#L244
     Flux<DataBuffer> channel =
         DataBufferUtils.readAsynchronousFileChannel(
             () -> AsynchronousFileChannel.open(path, StandardOpenOption.READ),
